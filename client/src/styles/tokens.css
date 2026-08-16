@@ -1,0 +1,61 @@
+
+
+:root {
+
+  /* Background layers — darkest to lightest */
+  --bg:           #0d1117;
+  --surface:      #161b24;
+  --surface-up:   #1c2333;
+  --surface-top:  #222d3d;
+
+  /* Borders */
+  --line:         rgba(99, 120, 155, 0.15);
+  --line-up:      rgba(99, 120, 155, 0.28);
+
+  /* Accent colors — each maps to a node type */
+  --signal:       #ff7a29;   /* action nodes, CTAs */
+  --signal-glow:  rgba(255, 122, 41, 0.18);
+  --signal-dim:   rgba(255, 122, 41, 0.08);
+
+  --data:         #22d3ee;   /* sensor nodes, live data */
+  --data-glow:    rgba(34, 211, 238, 0.18);
+  --data-dim:     rgba(34, 211, 238, 0.08);
+
+  --logic:        #a78bfa;   /* filter/math nodes */
+  --logic-glow:   rgba(167, 139, 250, 0.18);
+  --logic-dim:    rgba(167, 139, 250, 0.08);
+
+  --alert:        #fb7185;   /* error states, warnings */
+  --alert-glow:   rgba(251, 113, 133, 0.18);
+  --alert-dim:    rgba(251, 113, 133, 0.08);
+
+  --ok:           #4ade80;   /* success, connected states */
+  --ok-dim:       rgba(74, 222, 128, 0.08);
+
+  /* Text hierarchy */
+  --ink:          #e6edf3;   /* primary text */
+  --ink-dim:      #8b949e;   /* secondary text */
+  --ink-faint:    #484f58;   /* labels, placeholders */
+
+  /* Typography */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+
+  /* Spacing scale */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  40px;
+
+  /* Border radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+
+  /* Transitions */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+}
