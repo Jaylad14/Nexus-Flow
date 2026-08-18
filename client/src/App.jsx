@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import TopBar from './components/TopBar'
+import Sidebar from './components/Sidebar'
 
 function App() {
   const [activeTab, setActiveTab] = useState('Canvas')
@@ -8,14 +9,13 @@ function App() {
     <div style={{
       display: 'grid',
       gridTemplateRows: '52px 1fr',
+      gridTemplateColumns: '220px 1fr',
       height: '100vh',
       overflow: 'hidden',
       background: 'var(--bg)',
     }}>
-      <TopBar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <Sidebar />
       <div style={{
         display: 'flex',
         alignItems: 'center',
