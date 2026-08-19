@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
+import Canvas from './components/Canvas'
 
 function App() {
   const [activeTab, setActiveTab] = useState('Canvas')
@@ -16,16 +17,7 @@ function App() {
     }}>
       <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
       <Sidebar />
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--ink-dim)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: '13px',
-      }}>
-        Canvas coming next...
-      </div>
+      <Canvas />
     </div>
   )
 }
