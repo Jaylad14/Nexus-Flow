@@ -16,7 +16,7 @@ const initialNodes = [
     id: '1',
     type: 'sensor',
     position: { x: 60, y: 120 },
-    data: { label: 'Turbine 04 — Temp', value: '71C' },
+    data: { label: 'Turbine 04 — Temp', value: '71C', source: 'turbine-04.temperature' },
   },
   {
     id: '2',
@@ -49,7 +49,7 @@ const initialEdges = [
   },
 ]
 
-function Canvas() {
+function Canvas({ onNodeSelect }) {
   const [nodes, setNodes] = useState(initialNodes)
   const [edges, setEdges] = useState(initialEdges)
 
@@ -61,6 +61,17 @@ function Canvas() {
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   )
+
+  const handleNodeClick = useCallback(
+    (event, node) => {
+      if (onNodeSelect) onNodeSelect(node)
+    },
+    [onNodeSelect]
+  )
+
+  const handlePaneClick = useCallback(() => {
+    if (onNodeSelect) onNodeSelect(null)
+  }, [onNodeSelect])
 
   return (
     <div style={{
@@ -74,6 +85,8 @@ function Canvas() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         fitView
       >
