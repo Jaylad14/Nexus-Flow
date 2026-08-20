@@ -1,9 +1,9 @@
 // Load environment variables from .env into process.env
 require('dotenv').config();
-
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const graphRoutes = require('./routes/graphs');
 
 const app = express();
 
@@ -17,6 +17,9 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'NexusFlow server is running' });
 });
+
+// Graph save/load routes
+app.use('/api/graphs', graphRoutes);
 
 const PORT = process.env.PORT || 5000;
 
