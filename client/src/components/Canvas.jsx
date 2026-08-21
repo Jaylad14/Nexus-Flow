@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { ReactFlow, Background, Controls, applyNodeChanges, applyEdgeChanges } from 'reactflow'
 import 'reactflow/dist/style.css'
 import SensorNode from './nodes/SensorNode'
@@ -11,61 +11,18 @@ const nodeTypes = {
   action: ActionNode,
 }
 
-const initialNodes = [
-  {
-    id: '1',
-    type: 'sensor',
-    position: { x: 60, y: 120 },
-    data: { label: 'Turbine 04 — Temp', value: '71C', source: 'turbine-04.temperature' },
-  },
-  {
-    id: '2',
-    type: 'filter',
-    position: { x: 360, y: 150 },
-    data: { label: 'Moving average', config: 'window: 10s', output: '69.4C' },
-  },
-  {
-    id: '3',
-    type: 'action',
-    position: { x: 640, y: 84 },
-    data: { label: 'SMS alert', condition: 'if > 80C', target: '+91-98xxx-xxxxx' },
-  },
-]
-
-const initialEdges = [
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
-    style: { stroke: 'rgba(34,211,238,0.6)', strokeWidth: 1.5, strokeDasharray: '5 4' },
-    animated: true,
-  },
-  {
-    id: 'e2-3',
-    source: '2',
-    target: '3',
-    style: { stroke: 'rgba(167,139,250,0.6)', strokeWidth: 1.5, strokeDasharray: '5 4' },
-    animated: true,
-  },
-]
-
-function Canvas({ onNodeSelect }) {
-  const [nodes, setNodes] = useState(initialNodes)
-  const [edges, setEdges] = useState(initialEdges)
-
+function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect }) {
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
+    [setNodes]
   )
   const onEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+    [setEdges]
   )
 
   const handleNodeClick = useCallback(
-    (event, node) => {
-      if (onNodeSelect) onNodeSelect(node)
-    },
+    (event, node) => { if (onNodeSelect) onNodeSelect(node) },
     [onNodeSelect]
   )
 
