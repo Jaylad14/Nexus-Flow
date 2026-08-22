@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const graphRoutes = require('./routes/graphs');
 const telemetryRoutes = require('./routes/telemetry');
 const { startMockSensor } = require('./services/mockSensor');
+const { processReading } = require('./services/ruleEngine');
 
 const app = express();
 
@@ -20,31 +21,23 @@ app.get('/api/health', (req, res) => {
 app.use('/api/graphs', graphRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 
-// Create a raw HTTP server from the Express app, so WebSocket
-// can attach to the exact same port instead of needing a second one
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-
-// Track connected browser clients
 const clients = new Set();
 
 wss.on('connection', (ws) => {
   clients.add(ws);
   console.log(`🔌 Client connected (${clients.size} total)`);
-
   ws.on('close', () => {
     clients.delete(ws);
     console.log(`🔌 Client disconnected (${clients.size} total)`);
   });
 });
 
-// Broadcast a message to every connected browser
 function broadcast(data) {
   const payload = JSON.stringify(data);
   clients.forEach((client) => {
-    if (client.readyState === client.OPEN) {
-      client.send(payload);
-    }
+    if (client.readyState === client.OPEN) client.send(payload);
   });
 }
 
@@ -57,9 +50,31 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`✅ Server running on http://localhost:${PORT}`);
       console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
 
-      // Push every new mock reading straight to all connected browsers
       startMockSensor((reading) => {
+        // Send the raw reading, as before
         broadcast({ type: 'telemetry', ...reading });
+
+        // Run it through the rule engine
+        const result = processReading(reading.sensorId, reading.value);
+
+        // Always broadcast the filtered (smoothed) value too
+        broadcast({
+          type: 'filtered',
+          sensorId: reading.sensorId,
+          value: result.filteredValue,
+        });
+
+        // Only broadcast an alert event on the exact moment it fires
+        if (result.alertFired) {
+          console.log(`🚨 ALERT: ${reading.sensorId} crossed ${result.threshold}°C`);
+          broadcast({
+            type: 'alert',
+            sensorId: reading.sensorId,
+            value: result.filteredValue,
+            threshold: result.threshold,
+            timestamp: new Date(),
+          });
+        }
       });
     });
   })
