@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { ReactFlow, Background, Controls, applyNodeChanges, applyEdgeChanges } from 'reactflow'
 import 'reactflow/dist/style.css'
 import SensorNode from './nodes/SensorNode'
@@ -11,7 +11,7 @@ const nodeTypes = {
   action: ActionNode,
 }
 
-function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect }) {
+function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
@@ -30,15 +30,23 @@ function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect }) {
     if (onNodeSelect) onNodeSelect(null)
   }, [onNodeSelect])
 
+  // Inject the alerting flag into the action node's data so it can render its glow
+  const displayNodes = useMemo(() => {
+    return nodes.map((node) =>
+      node.type === 'action' ? { ...node, data: { ...node.data, alerting } } : node
+    )
+  }, [nodes, alerting])
+
   return (
     <div style={{
       position: 'relative',
+      height: '100%',
       background: 'var(--bg)',
       backgroundImage: 'radial-gradient(circle, rgba(99,120,155,0.18) 1px, transparent 1px)',
       backgroundSize: '22px 22px',
     }}>
       <ReactFlow
-        nodes={nodes}
+        nodes={displayNodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}

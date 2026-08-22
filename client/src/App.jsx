@@ -3,6 +3,7 @@ import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import Canvas from './components/Canvas'
 import Inspector from './components/Inspector'
+import Toast from './components/Toast'
 import { saveGraph } from './utils/api'
 import { useTelemetry } from './hooks/useTelemetry'
 
@@ -51,23 +52,32 @@ function App() {
   const [edges, setEdges] = useState(initialEdges)
   const [graphId, setGraphId] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
+  const [alerting, setAlerting] = useState(false)
 
-  const readings = useTelemetry()
+  const { readings, filtered, lastAlert } = useTelemetry()
 
-  // Whenever a new telemetry reading comes in, update the matching sensor node's value
+  // Update sensor node's live value + filter node's smoothed output
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
         if (node.type === 'sensor' && readings[node.data.source] !== undefined) {
-          return {
-            ...node,
-            data: { ...node.data, value: `${readings[node.data.source]}C` },
-          }
+          return { ...node, data: { ...node.data, value: `${readings[node.data.source]}C` } }
+        }
+        if (node.type === 'filter' && filtered['turbine-04.temperature'] !== undefined) {
+          return { ...node, data: { ...node.data, output: `${filtered['turbine-04.temperature']}C` } }
         }
         return node
       })
     )
-  }, [readings])
+  }, [readings, filtered])
+
+  // When an alert fires, briefly flag the action node as "alerting" for a glow effect
+  useEffect(() => {
+    if (!lastAlert) return
+    setAlerting(true)
+    const timer = setTimeout(() => setAlerting(false), 4000)
+    return () => clearTimeout(timer)
+  }, [lastAlert])
 
   const handleSave = async (status) => {
     setSaveStatus('saving')
@@ -101,13 +111,17 @@ function App() {
         saveStatus={saveStatus}
       />
       <Sidebar />
-      <Canvas
-        nodes={nodes}
-        edges={edges}
-        setNodes={setNodes}
-        setEdges={setEdges}
-        onNodeSelect={setSelectedNode}
-      />
+      <div style={{ position: 'relative' }}>
+        <Canvas
+          nodes={nodes}
+          edges={edges}
+          setNodes={setNodes}
+          setEdges={setEdges}
+          onNodeSelect={setSelectedNode}
+          alerting={alerting}
+        />
+        <Toast alert={lastAlert} />
+      </div>
       <Inspector selectedNode={selectedNode} />
     </div>
   )

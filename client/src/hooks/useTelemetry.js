@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Connects to the backend WebSocket and tracks the latest
-// reading per sensorId. Returns a live-updating object like:
-// { "turbine-04.temperature": 78.2 }
+// Connects to the backend WebSocket and tracks:
+// - readings: raw sensor values, per sensorId
+// - filtered: smoothed (moving average) values, per sensorId
+// - lastAlert: the most recent threshold-crossing event, or null
 export function useTelemetry() {
   const [readings, setReadings] = useState({})
+  const [filtered, setFiltered] = useState({})
+  const [lastAlert, setLastAlert] = useState(null)
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -13,11 +16,17 @@ export function useTelemetry() {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data)
+
       if (msg.type === 'telemetry') {
-        setReadings((prev) => ({
-          ...prev,
-          [msg.sensorId]: msg.value,
-        }))
+        setReadings((prev) => ({ ...prev, [msg.sensorId]: msg.value }))
+      }
+
+      if (msg.type === 'filtered') {
+        setFiltered((prev) => ({ ...prev, [msg.sensorId]: msg.value }))
+      }
+
+      if (msg.type === 'alert') {
+        setLastAlert({ ...msg, id: Date.now() })
       }
     }
 
@@ -26,5 +35,5 @@ export function useTelemetry() {
     return () => ws.close()
   }, [])
 
-  return readings
+  return { readings, filtered, lastAlert }
 }
