@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import Canvas from './components/Canvas'
 import Inspector from './components/Inspector'
 import { saveGraph } from './utils/api'
+import { useTelemetry } from './hooks/useTelemetry'
 
 const initialNodes = [
   {
@@ -49,17 +50,29 @@ function App() {
   const [nodes, setNodes] = useState(initialNodes)
   const [edges, setEdges] = useState(initialEdges)
   const [graphId, setGraphId] = useState(null)
-  const [saveStatus, setSaveStatus] = useState('idle') // idle | saving | saved | error
+  const [saveStatus, setSaveStatus] = useState('idle')
+
+  const readings = useTelemetry()
+
+  // Whenever a new telemetry reading comes in, update the matching sensor node's value
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.type === 'sensor' && readings[node.data.source] !== undefined) {
+          return {
+            ...node,
+            data: { ...node.data, value: `${readings[node.data.source]}C` },
+          }
+        }
+        return node
+      })
+    )
+  }, [readings])
 
   const handleSave = async (status) => {
     setSaveStatus('saving')
     try {
-      const payload = {
-        name: 'Turbine monitor rule',
-        nodes,
-        edges,
-        status, // 'draft' or 'deployed'
-      }
+      const payload = { name: 'Turbine monitor rule', nodes, edges, status }
       const saved = await saveGraph(graphId, payload)
       setGraphId(saved._id)
       setSaveStatus('saved')
