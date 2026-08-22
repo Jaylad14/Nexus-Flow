@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const graphRoutes = require('./routes/graphs');
@@ -18,17 +20,46 @@ app.get('/api/health', (req, res) => {
 app.use('/api/graphs', graphRoutes);
 app.use('/api/telemetry', telemetryRoutes);
 
+// Create a raw HTTP server from the Express app, so WebSocket
+// can attach to the exact same port instead of needing a second one
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+
+// Track connected browser clients
+const clients = new Set();
+
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  console.log(`🔌 Client connected (${clients.size} total)`);
+
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log(`🔌 Client disconnected (${clients.size} total)`);
+  });
+});
+
+// Broadcast a message to every connected browser
+function broadcast(data) {
+  const payload = JSON.stringify(data);
+  clients.forEach((client) => {
+    if (client.readyState === client.OPEN) {
+      client.send(payload);
+    }
+  });
+}
+
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected');
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
+      console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
 
-      // Start generating mock sensor data
+      // Push every new mock reading straight to all connected browsers
       startMockSensor((reading) => {
-        console.log(`📊 ${reading.sensorId}: ${reading.value}°C`);
+        broadcast({ type: 'telemetry', ...reading });
       });
     });
   })
