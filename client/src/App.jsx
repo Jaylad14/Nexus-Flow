@@ -4,10 +4,10 @@ import Sidebar from './components/Sidebar'
 import Canvas from './components/Canvas'
 import Inspector from './components/Inspector'
 import Toast from './components/Toast'
-import { saveGraph } from './utils/api'
+import { saveGraph, loadLatestGraph } from './utils/api'
 import { useTelemetry } from './hooks/useTelemetry'
 
-const initialNodes = [
+const defaultNodes = [
   {
     id: '1',
     type: 'sensor',
@@ -28,7 +28,7 @@ const initialNodes = [
   },
 ]
 
-const initialEdges = [
+const defaultEdges = [
   {
     id: 'e1-2',
     source: '1',
@@ -48,15 +48,30 @@ const initialEdges = [
 function App() {
   const [activeTab, setActiveTab] = useState('Canvas')
   const [selectedNode, setSelectedNode] = useState(null)
-  const [nodes, setNodes] = useState(initialNodes)
-  const [edges, setEdges] = useState(initialEdges)
+  const [nodes, setNodes] = useState(defaultNodes)
+  const [edges, setEdges] = useState(defaultEdges)
   const [graphId, setGraphId] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
   const [alerting, setAlerting] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   const { readings, filtered, lastAlert } = useTelemetry()
 
-  // Update sensor node's live value + filter node's smoothed output
+  // On first mount, try to load the most recently saved draft.
+  // If one exists, use it. Otherwise, keep the built-in defaults.
+  useEffect(() => {
+    loadLatestGraph()
+      .then((graph) => {
+        if (graph) {
+          setNodes(graph.nodes)
+          setEdges(graph.edges)
+          setGraphId(graph._id)
+        }
+      })
+      .catch((err) => console.error('Load failed:', err.message))
+      .finally(() => setLoaded(true))
+  }, [])
+
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -71,7 +86,6 @@ function App() {
     )
   }, [readings, filtered])
 
-  // When an alert fires, briefly flag the action node as "alerting" for a glow effect
   useEffect(() => {
     if (!lastAlert) return
     setAlerting(true)
@@ -92,6 +106,14 @@ function App() {
       setSaveStatus('error')
       setTimeout(() => setSaveStatus('idle'), 3000)
     }
+  }
+
+  if (!loaded) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+        Loading NexusFlow...
+      </div>
+    )
   }
 
   return (
