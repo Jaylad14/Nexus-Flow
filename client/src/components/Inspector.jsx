@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import { overrideTemperature } from '../utils/api'
+
 const typeColors = {
-  sensor: { c: 'var(--data)', icon: 'D', label: 'Sensor node' },
-  filter: { c: 'var(--logic)', icon: 'D', label: 'Filter node' },
-  action: { c: 'var(--signal)', icon: 'D', label: 'Action node' },
+  sensor: { c: 'var(--data)', label: 'Sensor node' },
+  filter: { c: 'var(--logic)', label: 'Filter node' },
+  action: { c: 'var(--signal)', label: 'Action node' },
 }
 
 function Field({ label, children }) {
@@ -28,6 +31,9 @@ const inputStyle = {
 }
 
 function Inspector({ selectedNode }) {
+  const [overrideValue, setOverrideValue] = useState('')
+  const [overrideStatus, setOverrideStatus] = useState('idle')
+
   if (!selectedNode) {
     return (
       <aside style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
@@ -41,6 +47,19 @@ function Inspector({ selectedNode }) {
   const meta = typeColors[selectedNode.type] || typeColors.sensor
   const data = selectedNode.data
 
+  const handleOverride = async () => {
+    if (!overrideValue || isNaN(Number(overrideValue))) return
+    setOverrideStatus('sending')
+    try {
+      await overrideTemperature(Number(overrideValue))
+      setOverrideStatus('sent')
+      setTimeout(() => setOverrideStatus('idle'), 1500)
+    } catch {
+      setOverrideStatus('error')
+      setTimeout(() => setOverrideStatus('idle'), 2000)
+    }
+  }
+
   return (
     <aside style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
@@ -48,7 +67,7 @@ function Inspector({ selectedNode }) {
           {data.label}
         </div>
         <div style={{ fontSize: '11.5px', color: 'var(--ink-faint)', marginTop: '3px' }}>
-          {meta.label} - ID: node-{selectedNode.id}
+          {meta.label} · ID: node-{selectedNode.id}
         </div>
       </div>
 
@@ -62,33 +81,56 @@ function Inspector({ selectedNode }) {
             <Field label="Data source">
               <select style={inputStyle} defaultValue={data.source}>
                 <option value="turbine-04.temperature">turbine-04.temperature</option>
-                <option value="turbine-04.pressure">turbine-04.pressure</option>
-                <option value="turbine-04.rpm">turbine-04.rpm</option>
               </select>
             </Field>
-            <Field label="Poll interval">
-              <select style={inputStyle}>
-                <option>200ms (5,000/sec)</option>
-                <option>500ms (2,000/sec)</option>
-                <option>1s (1,000/sec)</option>
-              </select>
-            </Field>
+
+            <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
+                Manual override
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="number"
+                  placeholder="e.g. 85"
+                  value={overrideValue}
+                  onChange={(e) => setOverrideValue(e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button
+                  onClick={handleOverride}
+                  disabled={overrideStatus === 'sending'}
+                  style={{
+                    padding: '7px 14px', borderRadius: '6px', border: 'none',
+                    background: 'var(--signal)', color: '#0d1117',
+                    fontFamily: 'var(--font-mono)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Set
+                </button>
+              </div>
+              {overrideStatus === 'sent' && (
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>
+                  Applied — updates within 1s
+                </div>
+              )}
+            </div>
+
+            <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
+                Live telemetry
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                <span style={{ color: 'var(--ink-dim)' }}>Current</span>
+                <span style={{ color: 'var(--data)', fontWeight: 500 }}>{data.value || '—'}</span>
+              </div>
+            </div>
           </>
         )}
 
         {selectedNode.type === 'filter' && (
-          <>
-            <Field label="Filter type">
-              <select style={inputStyle}>
-                <option>Moving average</option>
-                <option>Threshold</option>
-                <option>Delta</option>
-              </select>
-            </Field>
-            <Field label="Window size">
-              <input type="text" defaultValue="10s" style={inputStyle} />
-            </Field>
-          </>
+          <Field label="Window size">
+            <input type="text" defaultValue="10s" style={inputStyle} />
+          </Field>
         )}
 
         {selectedNode.type === 'action' && (
@@ -100,22 +142,6 @@ function Inspector({ selectedNode }) {
               <input type="text" defaultValue={data.target} style={inputStyle} />
             </Field>
           </>
-        )}
-
-        <div style={{ height: '1px', background: 'var(--line)', margin: '16px 0' }} />
-
-        {selectedNode.type === 'sensor' && (
-          <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
-              Live telemetry
-            </div>
-            {[['Current', data.value || '71.0C'], ['Min (10s)', '68.2C'], ['Max (10s)', '72.4C'], ['Writes/sec', '5,000']].map(([k, v]) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-                <span style={{ color: 'var(--ink-dim)' }}>{k}</span>
-                <span style={{ color: 'var(--data)', fontWeight: 500 }}>{v}</span>
-              </div>
-            ))}
-          </div>
         )}
       </div>
     </aside>
