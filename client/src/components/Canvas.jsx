@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react'
-import { ReactFlow, Background, Controls, applyNodeChanges, applyEdgeChanges, useReactFlow, ReactFlowProvider } from 'reactflow'
+import { ReactFlow, Background, Controls, addEdge, applyNodeChanges, applyEdgeChanges, useReactFlow, ReactFlowProvider } from 'reactflow'
 import 'reactflow/dist/style.css'
 import SensorNode from './nodes/SensorNode'
 import FilterNode from './nodes/FilterNode'
@@ -25,6 +25,16 @@ function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting 
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [setEdges]
   )
+
+  // Fires when the user drags from one node's handle to another's,
+  // completing a new wire. This is the piece that was missing.
+  const onConnect = useCallback((connection) => {
+    setEdges((eds) => addEdge({
+      ...connection,
+      animated: true,
+      style: { stroke: 'rgba(34,211,238,0.6)', strokeWidth: 1.5, strokeDasharray: '5 4' },
+    }, eds))
+  }, [setEdges])
 
   const handleNodeClick = useCallback(
     (event, node) => { if (onNodeSelect) onNodeSelect(node) },
@@ -88,6 +98,7 @@ function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting 
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
@@ -100,7 +111,6 @@ function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting 
   )
 }
 
-// Wrapped in ReactFlowProvider so useReactFlow() (needed for drop coordinates) works correctly
 function Canvas(props) {
   return (
     <ReactFlowProvider>

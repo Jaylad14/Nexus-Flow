@@ -6,6 +6,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const graphRoutes = require('./routes/graphs');
 const telemetryRoutes = require('./routes/telemetry');
+const rulesRoutes = require('./routes/rules');
 const { startMockSensor } = require('./services/mockSensor');
 const { processReading } = require('./services/ruleEngine');
 
@@ -20,6 +21,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/graphs', graphRoutes);
 app.use('/api/telemetry', telemetryRoutes);
+app.use('/api/rules', rulesRoutes);
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -27,11 +29,7 @@ const clients = new Set();
 
 wss.on('connection', (ws) => {
   clients.add(ws);
-  console.log(`🔌 Client connected (${clients.size} total)`);
-  ws.on('close', () => {
-    clients.delete(ws);
-    console.log(`🔌 Client disconnected (${clients.size} total)`);
-  });
+  ws.on('close', () => clients.delete(ws));
 });
 
 function broadcast(data) {
@@ -51,22 +49,12 @@ mongoose.connect(process.env.MONGO_URI)
       console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
 
       startMockSensor((reading) => {
-        // Send the raw reading, as before
         broadcast({ type: 'telemetry', ...reading });
 
-        // Run it through the rule engine
         const result = processReading(reading.sensorId, reading.value);
+        broadcast({ type: 'filtered', sensorId: reading.sensorId, value: result.filteredValue });
 
-        // Always broadcast the filtered (smoothed) value too
-        broadcast({
-          type: 'filtered',
-          sensorId: reading.sensorId,
-          value: result.filteredValue,
-        });
-
-        // Only broadcast an alert event on the exact moment it fires
         if (result.alertFired) {
-          console.log(`🚨 ALERT: ${reading.sensorId} crossed ${result.threshold}°C`);
           broadcast({
             type: 'alert',
             sensorId: reading.sensorId,

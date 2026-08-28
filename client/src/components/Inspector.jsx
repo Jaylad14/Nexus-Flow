@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { overrideTemperature } from '../utils/api'
+import { overrideTemperature, setThreshold } from '../utils/api'
 
 const typeColors = {
-  sensor: { c: 'var(--data)', label: 'Sensor node' },
-  filter: { c: 'var(--logic)', label: 'Filter node' },
-  action: { c: 'var(--signal)', label: 'Action node' },
+  sensor: { label: 'Sensor node' },
+  filter: { label: 'Filter node' },
+  action: { label: 'Action node' },
 }
 
 function Field({ label, children }) {
@@ -19,20 +19,16 @@ function Field({ label, children }) {
 }
 
 const inputStyle = {
-  width: '100%',
-  padding: '7px 10px',
-  borderRadius: '6px',
-  background: 'var(--surface-up)',
-  border: '1px solid var(--line-up)',
-  color: 'var(--ink)',
-  fontFamily: 'var(--font-mono)',
-  fontSize: '12px',
-  outline: 'none',
+  width: '100%', padding: '7px 10px', borderRadius: '6px',
+  background: 'var(--surface-up)', border: '1px solid var(--line-up)',
+  color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontSize: '12px', outline: 'none',
 }
 
-function Inspector({ selectedNode }) {
+function Inspector({ selectedNode, onDeleteNode }) {
   const [overrideValue, setOverrideValue] = useState('')
   const [overrideStatus, setOverrideStatus] = useState('idle')
+  const [thresholdValue, setThresholdValue] = useState('80')
+  const [thresholdStatus, setThresholdStatus] = useState('idle')
 
   if (!selectedNode) {
     return (
@@ -60,15 +56,41 @@ function Inspector({ selectedNode }) {
     }
   }
 
+  const handleThreshold = async () => {
+    if (!thresholdValue || isNaN(Number(thresholdValue))) return
+    setThresholdStatus('sending')
+    try {
+      await setThreshold(Number(thresholdValue))
+      setThresholdStatus('sent')
+      setTimeout(() => setThresholdStatus('idle'), 1500)
+    } catch {
+      setThresholdStatus('error')
+      setTimeout(() => setThresholdStatus('idle'), 2000)
+    }
+  }
+
   return (
     <aside style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)' }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
-          {data.label}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+        <div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>
+            {data.label}
+          </div>
+          <div style={{ fontSize: '11.5px', color: 'var(--ink-faint)', marginTop: '3px' }}>
+            {meta.label} · ID: node-{selectedNode.id}
+          </div>
         </div>
-        <div style={{ fontSize: '11.5px', color: 'var(--ink-faint)', marginTop: '3px' }}>
-          {meta.label} · ID: node-{selectedNode.id}
-        </div>
+        <button
+          onClick={() => onDeleteNode(selectedNode.id)}
+          title="Delete this node"
+          style={{
+            width: '26px', height: '26px', borderRadius: '6px', flexShrink: 0,
+            border: '1px solid rgba(251,113,133,0.3)', background: 'rgba(251,113,133,0.08)',
+            color: 'var(--alert)', fontSize: '13px', cursor: 'pointer',
+          }}
+        >
+          ✕
+        </button>
       </div>
 
       <div style={{ padding: '14px 16px', flex: 1, overflowY: 'auto' }}>
@@ -89,36 +111,16 @@ function Inspector({ selectedNode }) {
                 Manual override
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="number"
-                  placeholder="e.g. 85"
-                  value={overrideValue}
-                  onChange={(e) => setOverrideValue(e.target.value)}
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <button
-                  onClick={handleOverride}
-                  disabled={overrideStatus === 'sending'}
-                  style={{
-                    padding: '7px 14px', borderRadius: '6px', border: 'none',
-                    background: 'var(--signal)', color: '#0d1117',
-                    fontFamily: 'var(--font-mono)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
+                <input type="number" placeholder="e.g. 85" value={overrideValue} onChange={(e) => setOverrideValue(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                <button onClick={handleOverride} disabled={overrideStatus === 'sending'} style={{ padding: '7px 14px', borderRadius: '6px', border: 'none', background: 'var(--signal)', color: '#0d1117', fontFamily: 'var(--font-mono)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}>
                   Set
                 </button>
               </div>
-              {overrideStatus === 'sent' && (
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>
-                  Applied — updates within 1s
-                </div>
-              )}
+              {overrideStatus === 'sent' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>Applied — updates within 1s</div>}
             </div>
 
             <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
-                Live telemetry
-              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>Live telemetry</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
                 <span style={{ color: 'var(--ink-dim)' }}>Current</span>
                 <span style={{ color: 'var(--data)', fontWeight: 500 }}>{data.value || '—'}</span>
@@ -135,9 +137,18 @@ function Inspector({ selectedNode }) {
 
         {selectedNode.type === 'action' && (
           <>
-            <Field label="Trigger condition">
-              <input type="text" defaultValue={data.condition} style={inputStyle} />
-            </Field>
+            <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
+                Trigger threshold (°C)
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input type="number" value={thresholdValue} onChange={(e) => setThresholdValue(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                <button onClick={handleThreshold} disabled={thresholdStatus === 'sending'} style={{ padding: '7px 14px', borderRadius: '6px', border: 'none', background: 'var(--signal)', color: '#0d1117', fontFamily: 'var(--font-mono)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}>
+                  Apply
+                </button>
+              </div>
+              {thresholdStatus === 'sent' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>Rule engine updated live</div>}
+            </div>
             <Field label="Target">
               <input type="text" defaultValue={data.target} style={inputStyle} />
             </Field>
