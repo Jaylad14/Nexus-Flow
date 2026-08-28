@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react'
-import { ReactFlow, Background, Controls, applyNodeChanges, applyEdgeChanges } from 'reactflow'
+import { useCallback, useMemo, useRef } from 'react'
+import { ReactFlow, Background, Controls, applyNodeChanges, applyEdgeChanges, useReactFlow, ReactFlowProvider } from 'reactflow'
 import 'reactflow/dist/style.css'
 import SensorNode from './nodes/SensorNode'
 import FilterNode from './nodes/FilterNode'
@@ -11,7 +11,12 @@ const nodeTypes = {
   action: ActionNode,
 }
 
-function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
+let idCounter = 100
+
+function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
+  const wrapperRef = useRef(null)
+  const { screenToFlowPosition } = useReactFlow()
+
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
@@ -30,7 +35,35 @@ function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
     if (onNodeSelect) onNodeSelect(null)
   }, [onNodeSelect])
 
-  // Inject the alerting flag into the action node's data so it can render its glow
+  const onDragOver = useCallback((event) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  const onDrop = useCallback((event) => {
+    event.preventDefault()
+    const raw = event.dataTransfer.getData('application/nexusflow-node')
+    if (!raw) return
+
+    const item = JSON.parse(raw)
+    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+
+    idCounter += 1
+    const newNode = {
+      id: `n${idCounter}`,
+      type: item.type,
+      position,
+      data:
+        item.type === 'sensor'
+          ? { label: item.title, value: '—', source: `custom-${idCounter}` }
+          : item.type === 'filter'
+          ? { label: item.title, config: 'window: 10s', output: '—' }
+          : { label: item.title, condition: 'if > 80C', target: '—' },
+    }
+
+    setNodes((nds) => [...nds, newNode])
+  }, [screenToFlowPosition, setNodes])
+
   const displayNodes = useMemo(() => {
     return nodes.map((node) =>
       node.type === 'action' ? { ...node, data: { ...node.data, alerting } } : node
@@ -38,13 +71,18 @@ function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
   }, [nodes, alerting])
 
   return (
-    <div style={{
-      position: 'relative',
-      height: '100%',
-      background: 'var(--bg)',
-      backgroundImage: 'radial-gradient(circle, rgba(99,120,155,0.18) 1px, transparent 1px)',
-      backgroundSize: '22px 22px',
-    }}>
+    <div
+      ref={wrapperRef}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      style={{
+        position: 'relative',
+        height: '100%',
+        background: 'var(--bg)',
+        backgroundImage: 'radial-gradient(circle, rgba(99,120,155,0.18) 1px, transparent 1px)',
+        backgroundSize: '22px 22px',
+      }}
+    >
       <ReactFlow
         nodes={displayNodes}
         edges={edges}
@@ -59,6 +97,15 @@ function Canvas({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
         <Controls style={{ button: { background: 'var(--surface-up)', color: 'var(--ink)', border: 'none' } }} />
       </ReactFlow>
     </div>
+  )
+}
+
+// Wrapped in ReactFlowProvider so useReactFlow() (needed for drop coordinates) works correctly
+function Canvas(props) {
+  return (
+    <ReactFlowProvider>
+      <CanvasInner {...props} />
+    </ReactFlowProvider>
   )
 }
 

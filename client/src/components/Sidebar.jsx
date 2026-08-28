@@ -1,18 +1,18 @@
 function Sidebar() {
   const sources = [
-    { icon: 'T', title: 'Temperature', sub: 'Real-time sensor' },
-    { icon: 'P', title: 'Pressure', sub: 'Real-time sensor' },
-    { icon: 'R', title: 'RPM', sub: 'Real-time sensor' },
+    { icon: 'T', title: 'Temperature', sub: 'Real-time sensor', type: 'sensor' },
+    { icon: 'P', title: 'Pressure', sub: 'Real-time sensor', type: 'sensor' },
+    { icon: 'R', title: 'RPM', sub: 'Real-time sensor', type: 'sensor' },
   ]
   const filters = [
-    { icon: '~', title: 'Moving average', sub: 'Smooths noise' },
-    { icon: '>', title: 'Threshold', sub: 'Triggers on value' },
-    { icon: 'D', title: 'Delta', sub: 'Rate of change' },
+    { icon: '~', title: 'Moving average', sub: 'Smooths noise', type: 'filter' },
+    { icon: '>', title: 'Threshold', sub: 'Triggers on value', type: 'filter' },
+    { icon: 'D', title: 'Delta', sub: 'Rate of change', type: 'filter' },
   ]
   const actions = [
-    { icon: 'S', title: 'SMS alert', sub: 'Send text message' },
-    { icon: 'W', title: 'Webhook', sub: 'HTTP POST trigger' },
-    { icon: 'V', title: 'Shutoff valve', sub: 'Hardware signal' },
+    { icon: 'S', title: 'SMS alert', sub: 'Send text message', type: 'action' },
+    { icon: 'W', title: 'Webhook', sub: 'HTTP POST trigger', type: 'action' },
+    { icon: 'V', title: 'Shutoff valve', sub: 'Hardware signal', type: 'action' },
   ]
 
   const colors = { sensor: 'var(--data)', filter: 'var(--logic)', action: 'var(--signal)' }
@@ -24,8 +24,17 @@ function Sidebar() {
     </span>
   )
 
-  const NodeItem = ({ icon, title, sub, type }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-up)', cursor: 'grab', marginBottom: '5px' }}>
+  const onDragStart = (event, item) => {
+    event.dataTransfer.setData('application/nexusflow-node', JSON.stringify(item))
+    event.dataTransfer.effectAllowed = 'move'
+  }
+
+  const NodeItem = ({ icon, title, sub, type, ...rest }) => (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, { icon, title, sub, type, ...rest })}
+      style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 11px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--surface-up)', cursor: 'grab', marginBottom: '5px' }}
+    >
       <div style={{ width: '28px', height: '28px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', background: bgs[type], color: colors[type], flexShrink: 0 }}>
         {icon}
       </div>
@@ -44,15 +53,15 @@ function Sidebar() {
       <div style={{ padding: '12px', overflowY: 'auto', flex: 1 }}>
         <div style={{ marginBottom: '8px' }}>
           <Label text="Data sources" />
-          {sources.map(n => <NodeItem key={n.title} {...n} type="sensor" />)}
+          {sources.map(n => <NodeItem key={n.title} {...n} />)}
         </div>
         <div style={{ marginBottom: '8px' }}>
           <Label text="Math operations" />
-          {filters.map(n => <NodeItem key={n.title} {...n} type="filter" />)}
+          {filters.map(n => <NodeItem key={n.title} {...n} />)}
         </div>
         <div>
           <Label text="Action triggers" />
-          {actions.map(n => <NodeItem key={n.title} {...n} type="action" />)}
+          {actions.map(n => <NodeItem key={n.title} {...n} />)}
         </div>
       </div>
     </aside>
