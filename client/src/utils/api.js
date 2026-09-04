@@ -25,22 +25,12 @@ export async function loadLatestGraph() {
   return full.json()
 }
 
-export async function overrideTemperature(value) {
+export async function overrideTemperature(nodeId, value) {
   const res = await fetch(`${API_URL}/telemetry/override`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value }),
+    body: JSON.stringify({ nodeId, value }),
   })
   if (!res.ok) throw new Error('Override failed')
-  return res.json()
-}
-
-export async function setThreshold(value) {
-  const res = await fetch(`${API_URL}/rules/threshold`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value }),
-  })
-  if (!res.ok) throw new Error('Failed to update threshold')
   return res.json()
 }

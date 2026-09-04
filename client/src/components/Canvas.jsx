@@ -26,8 +26,7 @@ function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting 
     [setEdges]
   )
 
-  // Fires when the user drags from one node's handle to another's,
-  // completing a new wire. This is the piece that was missing.
+
   const onConnect = useCallback((connection) => {
     setEdges((eds) => addEdge({
       ...connection,
@@ -120,3 +119,52 @@ function Canvas(props) {
 }
 
 export default Canvas
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Fires when the user drags from one node's handle to another's,
+  // completing a new wire. This is the piece that was missing.

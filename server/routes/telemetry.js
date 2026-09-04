@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const Telemetry = require('../models/Telemetry')
-const { setTemp } = require('../services/mockSensor')
+const { setOverride } = require('../services/sensorTypes')
 
 router.get('/:sensorId', async (req, res) => {
   try {
@@ -14,14 +14,17 @@ router.get('/:sensorId', async (req, res) => {
   }
 })
 
-// POST /api/telemetry/override — manually set the mock sensor's value
+// POST /api/telemetry/override — manually set a specific node's next reading
 router.post('/override', (req, res) => {
-  const { value } = req.body
-  if (typeof value !== 'number' && isNaN(Number(value))) {
+  const { nodeId, value } = req.body
+  if (!nodeId) {
+    return res.status(400).json({ error: 'nodeId is required' })
+  }
+  if (isNaN(Number(value))) {
     return res.status(400).json({ error: 'value must be a number' })
   }
-  setTemp(value)
-  res.json({ ok: true, value: Number(value) })
+  setOverride(nodeId, value)
+  res.json({ ok: true, nodeId, value: Number(value) })
 })
 
 module.exports = router

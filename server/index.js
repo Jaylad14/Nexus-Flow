@@ -6,9 +6,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const graphRoutes = require('./routes/graphs');
 const telemetryRoutes = require('./routes/telemetry');
-const rulesRoutes = require('./routes/rules');
-const { startMockSensor } = require('./services/mockSensor');
-const { processReading } = require('./services/ruleEngine');
+const alertsRoutes = require('./routes/alerts');
+const Graph = require('./models/Graph');
+const { startEngine, stopEngine } = require('./services/graphEngine');
 
 const app = express();
 
@@ -21,7 +21,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/graphs', graphRoutes);
 app.use('/api/telemetry', telemetryRoutes);
-app.use('/api/rules', rulesRoutes);
+app.use('/api/alerts', alertsRoutes);
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
@@ -29,7 +29,11 @@ const clients = new Set();
 
 wss.on('connection', (ws) => {
   clients.add(ws);
-  ws.on('close', () => clients.delete(ws));
+  console.log(`🔌 Client connected (${clients.size} total)`);
+  ws.on('close', () => {
+    clients.delete(ws);
+    console.log(`🔌 Client disconnected (${clients.size} total)`);
+  });
 });
 
 function broadcast(data) {
@@ -39,6 +43,20 @@ function broadcast(data) {
   });
 }
 
+
+async function runDeployedGraph() {
+  const deployed = await Graph.findOne({ status: 'deployed' }).sort({ updatedAt: -1 });
+  if (deployed) {
+    console.log(`▶️  Running deployed graph: "${deployed.name}" (${deployed.nodes.length} nodes)`);
+    startEngine(deployed, broadcast);
+  } else {
+    console.log('⏸️  No deployed graph found — engine idle');
+    stopEngine();
+  }
+}
+
+app.set('runDeployedGraph', runDeployedGraph);
+
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
@@ -47,23 +65,7 @@ mongoose.connect(process.env.MONGO_URI)
     server.listen(PORT, () => {
       console.log(`✅ Server running on http://localhost:${PORT}`);
       console.log(`📡 WebSocket ready on ws://localhost:${PORT}`);
-
-      startMockSensor((reading) => {
-        broadcast({ type: 'telemetry', ...reading });
-
-        const result = processReading(reading.sensorId, reading.value);
-        broadcast({ type: 'filtered', sensorId: reading.sensorId, value: result.filteredValue });
-
-        if (result.alertFired) {
-          broadcast({
-            type: 'alert',
-            sensorId: reading.sensorId,
-            value: result.filteredValue,
-            threshold: result.threshold,
-            timestamp: new Date(),
-          });
-        }
-      });
+      runDeployedGraph();
     });
   })
   .catch((err) => {

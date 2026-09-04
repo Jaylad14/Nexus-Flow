@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Connects to the backend WebSocket and tracks:
-// - readings: raw sensor values, per sensorId
-// - filtered: smoothed (moving average) values, per sensorId
-// - lastAlert: the most recent threshold-crossing event, or null
+
 export function useTelemetry() {
   const [readings, setReadings] = useState({})
   const [filtered, setFiltered] = useState({})
@@ -37,3 +34,92 @@ export function useTelemetry() {
 
   return { readings, filtered, lastAlert }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Connects to the backend WebSocket and tracks:
+// - readings: raw sensor values, per sensorId
+// - filtered: smoothed (moving average) values, per sensorId
+// - lastAlert: the most recent threshold-crossing event, or null

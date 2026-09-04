@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { overrideTemperature, setThreshold } from '../utils/api'
+import { useState, useEffect } from 'react'
+import { overrideTemperature } from '../utils/api'
 
 const typeColors = {
   sensor: { label: 'Sensor node' },
@@ -24,11 +24,23 @@ const inputStyle = {
   color: 'var(--ink)', fontFamily: 'var(--font-mono)', fontSize: '12px', outline: 'none',
 }
 
-function Inspector({ selectedNode, onDeleteNode }) {
+function Inspector({ selectedNode, onDeleteNode, onUpdateNode }) {
   const [overrideValue, setOverrideValue] = useState('')
   const [overrideStatus, setOverrideStatus] = useState('idle')
-  const [thresholdValue, setThresholdValue] = useState('80')
-  const [thresholdStatus, setThresholdStatus] = useState('idle')
+
+  // Local text state for editable fields — synced whenever the
+  // selected node changes, so switching nodes shows the right values
+  const [label, setLabel] = useState('')
+  const [condition, setCondition] = useState('')
+  const [target, setTarget] = useState('')
+
+  useEffect(() => {
+    if (!selectedNode) return
+    setLabel(selectedNode.data.label || '')
+    setCondition(selectedNode.data.condition || '')
+    setTarget(selectedNode.data.target || '')
+    setOverrideValue('')
+  }, [selectedNode])
 
   if (!selectedNode) {
     return (
@@ -43,29 +55,20 @@ function Inspector({ selectedNode, onDeleteNode }) {
   const meta = typeColors[selectedNode.type] || typeColors.sensor
   const data = selectedNode.data
 
+  const commitLabel = (val) => { setLabel(val); onUpdateNode(selectedNode.id, { label: val }) }
+  const commitCondition = (val) => { setCondition(val); onUpdateNode(selectedNode.id, { condition: val }) }
+  const commitTarget = (val) => { setTarget(val); onUpdateNode(selectedNode.id, { target: val }) }
+
   const handleOverride = async () => {
     if (!overrideValue || isNaN(Number(overrideValue))) return
     setOverrideStatus('sending')
     try {
-      await overrideTemperature(Number(overrideValue))
+      await overrideTemperature(selectedNode.id, Number(overrideValue))
       setOverrideStatus('sent')
       setTimeout(() => setOverrideStatus('idle'), 1500)
     } catch {
       setOverrideStatus('error')
       setTimeout(() => setOverrideStatus('idle'), 2000)
-    }
-  }
-
-  const handleThreshold = async () => {
-    if (!thresholdValue || isNaN(Number(thresholdValue))) return
-    setThresholdStatus('sending')
-    try {
-      await setThreshold(Number(thresholdValue))
-      setThresholdStatus('sent')
-      setTimeout(() => setThresholdStatus('idle'), 1500)
-    } catch {
-      setThresholdStatus('error')
-      setTimeout(() => setThresholdStatus('idle'), 2000)
     }
   }
 
@@ -83,11 +86,7 @@ function Inspector({ selectedNode, onDeleteNode }) {
         <button
           onClick={() => onDeleteNode(selectedNode.id)}
           title="Delete this node"
-          style={{
-            width: '26px', height: '26px', borderRadius: '6px', flexShrink: 0,
-            border: '1px solid rgba(251,113,133,0.3)', background: 'rgba(251,113,133,0.08)',
-            color: 'var(--alert)', fontSize: '13px', cursor: 'pointer',
-          }}
+          style={{ width: '26px', height: '26px', borderRadius: '6px', flexShrink: 0, border: '1px solid rgba(251,113,133,0.3)', background: 'rgba(251,113,133,0.08)', color: 'var(--alert)', fontSize: '13px', cursor: 'pointer' }}
         >
           ✕
         </button>
@@ -95,20 +94,20 @@ function Inspector({ selectedNode, onDeleteNode }) {
 
       <div style={{ padding: '14px 16px', flex: 1, overflowY: 'auto' }}>
         <Field label="Node label">
-          <input type="text" defaultValue={data.label} style={inputStyle} />
+          <input type="text" value={label} onChange={(e) => commitLabel(e.target.value)} style={inputStyle} />
         </Field>
 
         {selectedNode.type === 'sensor' && (
           <>
             <Field label="Data source">
               <select style={inputStyle} defaultValue={data.source}>
-                <option value="turbine-04.temperature">turbine-04.temperature</option>
+                <option value={data.source}>{data.source}</option>
               </select>
             </Field>
 
             <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
-                Manual override
+                Manual override — this node only
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input type="number" placeholder="e.g. 85" value={overrideValue} onChange={(e) => setOverrideValue(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
@@ -116,7 +115,8 @@ function Inspector({ selectedNode, onDeleteNode }) {
                   Set
                 </button>
               </div>
-              {overrideStatus === 'sent' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>Applied — updates within 1s</div>}
+              {overrideStatus === 'sent' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>Applied — next reading uses this value</div>}
+              {overrideStatus === 'error' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--alert)', marginTop: '6px' }}>Failed to apply</div>}
             </div>
 
             <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px' }}>
@@ -137,20 +137,14 @@ function Inspector({ selectedNode, onDeleteNode }) {
 
         {selectedNode.type === 'action' && (
           <>
-            <div style={{ background: 'var(--surface-up)', border: '1px solid var(--line)', borderRadius: '8px', padding: '12px', marginBottom: '14px' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-faint)', marginBottom: '8px' }}>
-                Trigger threshold (°C)
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input type="number" value={thresholdValue} onChange={(e) => setThresholdValue(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
-                <button onClick={handleThreshold} disabled={thresholdStatus === 'sending'} style={{ padding: '7px 14px', borderRadius: '6px', border: 'none', background: 'var(--signal)', color: '#0d1117', fontFamily: 'var(--font-mono)', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer' }}>
-                  Apply
-                </button>
-              </div>
-              {thresholdStatus === 'sent' && <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10.5px', color: 'var(--ok)', marginTop: '6px' }}>Rule engine updated live</div>}
+            <Field label="Trigger condition (e.g. if > 75)">
+              <input type="text" value={condition} onChange={(e) => commitCondition(e.target.value)} style={inputStyle} />
+            </Field>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--ink-faint)', marginTop: '-8px', marginBottom: '14px' }}>
+              This number is what the engine actually checks — save and redeploy to apply
             </div>
             <Field label="Target">
-              <input type="text" defaultValue={data.target} style={inputStyle} />
+              <input type="text" value={target} onChange={(e) => commitTarget(e.target.value)} style={inputStyle} />
             </Field>
           </>
         )}

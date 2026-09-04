@@ -17,8 +17,7 @@ function nextReading() {
   return currentTemp
 }
 
-// Lets a manual UI input jump the temperature directly.
-// The automatic drift continues naturally from this new value.
+
 function setTemp(value) {
   currentTemp = Number(value)
   direction = 1

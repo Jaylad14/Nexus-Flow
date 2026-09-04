@@ -79,12 +79,20 @@ function App() {
     }
   }
 
-  // Removes a node AND any wires connected to it — otherwise you'd be
-  // left with a "dangling" edge pointing at a node that no longer exists
   const handleDeleteNode = useCallback((nodeId) => {
     setNodes((nds) => nds.filter((n) => n.id !== nodeId))
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId))
     setSelectedNode(null)
+  }, [])
+
+
+  const handleUpdateNode = useCallback((nodeId, dataPatch) => {
+    setNodes((nds) =>
+      nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...dataPatch } } : n))
+    )
+    setSelectedNode((prev) =>
+      prev && prev.id === nodeId ? { ...prev, data: { ...prev.data, ...dataPatch } } : prev
+    )
   }, [])
 
   if (!loaded) {
@@ -116,9 +124,70 @@ function App() {
         />
         <Toast alert={lastAlert} />
       </div>
-      <Inspector selectedNode={selectedNode} onDeleteNode={handleDeleteNode} />
+      <Inspector selectedNode={selectedNode} onDeleteNode={handleDeleteNode} onUpdateNode={handleUpdateNode} />
     </div>
   )
 }
 
 export default App
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Updates one field on one specific node's data — this is what
+  // makes every Inspector field genuinely persist instead of just
+  // displaying a value that goes nowhere.

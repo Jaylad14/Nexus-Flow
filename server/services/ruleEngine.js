@@ -2,7 +2,7 @@ const windows = {}
 const alertState = {}
 
 const WINDOW_SIZE = 10
-let THRESHOLD = 80   // now mutable — can be changed from the UI
+let THRESHOLD = 80   
 
 function setThreshold(value) {
   THRESHOLD = Number(value)
