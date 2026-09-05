@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Tracks live values keyed by nodeId — this makes it work for ANY
-// sensor/filter/action combination on the canvas, not just one
-// hardcoded example. Whatever node the backend says a reading
-// belongs to, that's the node we update.
+const MAX_HISTORY = 40
+
 export function useTelemetry() {
   const [readings, setReadings] = useState({})
   const [filtered, setFiltered] = useState({})
   const [lastAlert, setLastAlert] = useState(null)
+  const [history, setHistory] = useState({})   // { [nodeId]: [values...] }
   const wsRef = useRef(null)
 
   useEffect(() => {
@@ -19,6 +18,12 @@ export function useTelemetry() {
 
       if (msg.type === 'telemetry' && msg.nodeId) {
         setReadings((prev) => ({ ...prev, [msg.nodeId]: msg.value }))
+
+        setHistory((prev) => {
+          const existing = prev[msg.nodeId] || []
+          const next = [...existing, msg.value].slice(-MAX_HISTORY)
+          return { ...prev, [msg.nodeId]: next }
+        })
       }
 
       if (msg.type === 'filtered' && msg.nodeId) {
@@ -34,5 +39,5 @@ export function useTelemetry() {
     return () => ws.close()
   }, [])
 
-  return { readings, filtered, lastAlert }
+  return { readings, filtered, lastAlert, history }
 }

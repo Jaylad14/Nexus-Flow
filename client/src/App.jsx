@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import Canvas from './components/Canvas'
 import Inspector from './components/Inspector'
 import Toast from './components/Toast'
+import Dashboard from './components/Dashboard'
 import { saveGraph, loadLatestGraph } from './utils/api'
 import { useTelemetry } from './hooks/useTelemetry'
 
@@ -28,7 +29,7 @@ function App() {
   const [alerting, setAlerting] = useState(false)
   const [loaded, setLoaded] = useState(false)
 
-  const { readings, filtered, lastAlert } = useTelemetry()
+  const { readings, filtered, lastAlert, history } = useTelemetry()
 
   useEffect(() => {
     loadLatestGraph()
@@ -43,10 +44,6 @@ function App() {
       .finally(() => setLoaded(true))
   }, [])
 
-  // Matches live data to nodes by nodeId — works for ANY sensor or
-  // filter on the canvas, not just one hardcoded example. A sensor
-  // node shows its own raw reading; a filter node shows its own
-  // computed output (average, delta, or passthrough).
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -116,18 +113,36 @@ function App() {
         saveStatus={saveStatus}
       />
       <Sidebar />
-      <div style={{ position: 'relative' }}>
-        <Canvas
-          nodes={nodes}
-          edges={edges}
-          setNodes={setNodes}
-          setEdges={setEdges}
-          onNodeSelect={setSelectedNode}
-          alerting={alerting}
-        />
-        <Toast alert={lastAlert} />
-      </div>
-      <Inspector selectedNode={selectedNode} onDeleteNode={handleDeleteNode} onUpdateNode={handleUpdateNode} />
+
+      {activeTab === 'Canvas' && (
+        <div style={{ position: 'relative' }}>
+          <Canvas
+            nodes={nodes}
+            edges={edges}
+            setNodes={setNodes}
+            setEdges={setEdges}
+            onNodeSelect={setSelectedNode}
+            alerting={alerting}
+          />
+          <Toast alert={lastAlert} />
+        </div>
+      )}
+
+      {activeTab === 'Dashboard' && (
+        <Dashboard nodes={nodes} history={history} readings={readings} />
+      )}
+
+      {activeTab === 'Alerts' && (
+        <div style={{ padding: '20px', color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+          Alerts tab — coming Day 2
+        </div>
+      )}
+
+      {activeTab === 'Canvas' ? (
+        <Inspector selectedNode={selectedNode} onDeleteNode={handleDeleteNode} onUpdateNode={handleUpdateNode} />
+      ) : (
+        <div style={{ background: 'var(--surface)', borderLeft: '1px solid var(--line)' }} />
+      )}
     </div>
   )
 }
