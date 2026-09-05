@@ -43,14 +43,18 @@ function App() {
       .finally(() => setLoaded(true))
   }, [])
 
+  // Matches live data to nodes by nodeId — works for ANY sensor or
+  // filter on the canvas, not just one hardcoded example. A sensor
+  // node shows its own raw reading; a filter node shows its own
+  // computed output (average, delta, or passthrough).
   useEffect(() => {
     setNodes((nds) =>
       nds.map((node) => {
-        if (node.type === 'sensor' && readings[node.data.source] !== undefined) {
-          return { ...node, data: { ...node.data, value: `${readings[node.data.source]}C` } }
+        if (node.type === 'sensor' && readings[node.id] !== undefined) {
+          return { ...node, data: { ...node.data, value: `${readings[node.id]}` } }
         }
-        if (node.type === 'filter' && filtered['turbine-04.temperature'] !== undefined) {
-          return { ...node, data: { ...node.data, output: `${filtered['turbine-04.temperature']}C` } }
+        if (node.type === 'filter' && filtered[node.id] !== undefined) {
+          return { ...node, data: { ...node.data, output: `${filtered[node.id]}` } }
         }
         return node
       })
@@ -84,7 +88,6 @@ function App() {
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId))
     setSelectedNode(null)
   }, [])
-
 
   const handleUpdateNode = useCallback((nodeId, dataPatch) => {
     setNodes((nds) =>
@@ -130,64 +133,3 @@ function App() {
 }
 
 export default App
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // Updates one field on one specific node's data — this is what
-  // makes every Inspector field genuinely persist instead of just
-  // displaying a value that goes nowhere.
