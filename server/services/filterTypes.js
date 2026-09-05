@@ -1,5 +1,3 @@
-
-
 const state = {}
 
 function movingAverage(nodeId, value, windowSize = 10) {
@@ -19,16 +17,22 @@ function delta(nodeId, value) {
   return change
 }
 
-function passthrough(nodeId, value) {
-  return value
+// Threshold filter: gates the signal. Below a fixed cutoff (50),
+// it flattens to 0 — nothing downstream should react. At or above
+// the cutoff, the real value passes through unmodified. This is
+// genuinely different from Moving Average (smooths) and Delta
+// (rate of change) — this one filters out "noise floor" readings.
+const GATE_CUTOFF = 50
+
+function thresholdGate(nodeId, value) {
+  return value >= GATE_CUTOFF ? value : 0
 }
 
-// Runs the correct transformation based on the filter node's label.
 function applyFilter(filterLabel, nodeId, value) {
   if (filterLabel === 'Moving average') return movingAverage(nodeId, value)
   if (filterLabel === 'Delta') return delta(nodeId, value)
-  if (filterLabel === 'Threshold') return passthrough(nodeId, value)
-  return passthrough(nodeId, value)
+  if (filterLabel === 'Threshold') return thresholdGate(nodeId, value)
+  return value
 }
 
 module.exports = { applyFilter }
