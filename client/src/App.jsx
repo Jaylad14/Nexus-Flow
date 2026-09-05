@@ -5,6 +5,7 @@ import Canvas from './components/Canvas'
 import Inspector from './components/Inspector'
 import Toast from './components/Toast'
 import Dashboard from './components/Dashboard'
+import AlertsPanel from './components/AlertsPanel'
 import { saveGraph, loadLatestGraph } from './utils/api'
 import { useTelemetry } from './hooks/useTelemetry'
 
@@ -131,11 +132,8 @@ function App() {
       {activeTab === 'Dashboard' && (
         <Dashboard nodes={nodes} history={history} readings={readings} />
       )}
-
       {activeTab === 'Alerts' && (
-        <div style={{ padding: '20px', color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
-          Alerts tab — coming Day 2
-        </div>
+        <AlertsPanel lastAlert={lastAlert} />
       )}
 
       {activeTab === 'Canvas' ? (

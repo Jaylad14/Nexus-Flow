@@ -1,22 +1,20 @@
 const Alert = require('../models/Alert')
 
-
-
 async function fireSMS(node, value, broadcast) {
   console.log(`📱 SMS to ${node.data.target || 'unknown'}: value hit ${value}`)
-  await Alert.create({ sensorId: node.id, value, threshold: 0, status: 'active' })
+  await Alert.create({ nodeId: node.id, nodeLabel: node.data.label, actionType: 'sms', value, status: 'active' })
   broadcast({ type: 'alert', actionType: 'sms', nodeId: node.id, label: node.data.label, value, timestamp: new Date() })
 }
 
 async function fireWebhook(node, value, broadcast) {
   console.log(`🔗 Webhook fired: ${node.data.target || 'no URL set'} with value ${value}`)
-  await Alert.create({ sensorId: node.id, value, threshold: 0, status: 'active' })
+  await Alert.create({ nodeId: node.id, nodeLabel: node.data.label, actionType: 'webhook', value, status: 'active' })
   broadcast({ type: 'alert', actionType: 'webhook', nodeId: node.id, label: node.data.label, value, timestamp: new Date() })
 }
 
 async function fireShutoff(node, value, broadcast) {
   console.log(`🛑 SHUTOFF triggered on ${node.data.label} at value ${value}`)
-  await Alert.create({ sensorId: node.id, value, threshold: 0, status: 'active' })
+  await Alert.create({ nodeId: node.id, nodeLabel: node.data.label, actionType: 'shutoff', value, status: 'active' })
   broadcast({ type: 'alert', actionType: 'shutoff', nodeId: node.id, label: node.data.label, value, timestamp: new Date() })
 }
 
