@@ -11,7 +11,7 @@ const nodeTypes = {
   action: ActionNode,
 }
 
-let idCounter = 100
+
 
 function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting }) {
   const wrapperRef = useRef(null)
@@ -57,14 +57,14 @@ function CanvasInner({ nodes, edges, setNodes, setEdges, onNodeSelect, alerting 
     const item = JSON.parse(raw)
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY })
 
-    idCounter += 1
+
     const newNode = {
-      id: `n${idCounter}`,
+      id: `n${Date.now()}`,
       type: item.type,
       position,
       data:
         item.type === 'sensor'
-          ? { label: item.title, value: '—', source: `custom-${idCounter}` }
+          ? { label: item.title, value: '—', source: `custom-${Date.now()}` }
           : item.type === 'filter'
           ? { label: item.title, config: 'window: 10s', output: '—' }
           : { label: item.title, condition: 'if > 80C', target: '—' },
